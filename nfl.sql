@@ -59,7 +59,7 @@ CREATE TABLE Stadium (
 
 CREATE TABLE Official (
     official_id integer PRIMARY KEY,
-    game_key integer REFERENCES game(game_id)
+    game_id integer REFERENCES game(game_id)
 );
 
 CREATE TABLE played_in (
