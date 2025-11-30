@@ -52,6 +52,11 @@ CREATE TABLE Plays (
     home_team VARCHAR(255) REFERENCES team(team)
 );
 
+CREATE TABLE Stadium (
+    stadium_id VARCHAR(255) PRIMARY KEY,
+    stadium VARCHAR(255)
+);
+
 
 -- Data for team
 INSERT INTO team (team, team_name, col, team_division, team_nick) VALUES
