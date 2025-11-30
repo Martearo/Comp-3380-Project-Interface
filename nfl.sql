@@ -43,6 +43,14 @@ CREATE TABLE team (
     team_nick VARCHAR(255)
 );
 
+CREATE TABLE Plays (
+    game_id integer REFERENCES game(game_id),
+    season integer,
+    game_type VARCHAR(255),
+    week integer,
+    away_team VARCHAR(255) REFERENCES team(team),
+    home_team VARCHAR(255) REFERENCES team(team)
+);
 
 
 -- Data for team
