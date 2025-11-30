@@ -28,9 +28,9 @@ CREATE TABLE game (
     game_type VARCHAR(255),
     week integer,
     gameday TEXT,
-    away_team VARCHAR(255),
+    away_team VARCHAR(255) REFERENCES team(team),
     away_score integer,
-    home_team VARCHAR(255),
+    home_team VARCHAR(255) REFERENCES team(team),
     home_score integer
 );
 
@@ -42,6 +42,8 @@ CREATE TABLE team (
     team_division VARCHAR(255),
     team_nick VARCHAR(255)
 );
+
+
 
 -- Data for team
 INSERT INTO team (team, team_name, col, team_division, team_nick) VALUES
