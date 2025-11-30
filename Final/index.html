@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV to SQL Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .code-preview {
+            font-family: 'Fira Code', 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 p-4 shadow-lg">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-database text-emerald-400 text-2xl"></i>
+                <h1 class="text-xl font-bold tracking-tight">CSV to SQL <span class="text-emerald-400">Generator</span></h1>
+            </div>
+            <div class="text-sm text-slate-400 hidden sm:block">
+                Auto-detects types & generates Schema + Inserts
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow p-4 md:p-6 overflow-hidden">
+        <div class="max-w-7xl mx-auto h-full grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+            
+            <!-- Input Section -->
+            <div class="flex flex-col space-y-4 h-full">
+                
+                <!-- Controls -->
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Table Name</label>
+                            <input type="text" id="tableName" value="my_table" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-emerald-500 outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">SQL Flavor</label>
+                            <select id="sqlFlavor" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-emerald-500 outline-none transition">
+                                <option value="mysql">MySQL / MariaDB</option>
+                                <option value="postgresql">PostgreSQL</option>
+                                <option value="sqlite">SQLite</option>
+                                <option value="sqlserver">SQL Server</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" id="firstRowHeader" checked class="form-checkbox text-emerald-500 rounded bg-slate-700 border-transparent focus:ring-0">
+                            <span class="text-sm text-slate-300">First row is header</span>
+                        </label>
+                        
+                        <div class="relative">
+                            <input type="file" id="fileInput" accept=".csv" class="hidden" />
+                            <label for="fileInput" class="cursor-pointer inline-flex items-center px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition border border-slate-600">
+                                <i class="fa-solid fa-upload mr-2"></i> Upload CSV
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Text Area -->
+                <div class="flex-grow relative group">
+                    <textarea id="csvInput" placeholder="Paste your CSV data here..." class="w-full h-96 lg:h-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-sm code-preview text-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none resize-none transition scrollbar-thin scrollbar-thumb-slate-600"></textarea>
+                    <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition">
+                        <button onclick="clearInput()" class="bg-red-500/20 hover:bg-red-500/40 text-red-400 px-3 py-1 rounded text-xs font-medium backdrop-blur-sm">Clear</button>
+                    </div>
+                </div>
+
+                <button onclick="generateSQL()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-emerald-900/50 transition transform active:scale-95 flex items-center justify-center">
+                    <i class="fa-solid fa-gear mr-2"></i> Convert to SQL
+                </button>
+            </div>
+
+            <!-- Output Section -->
+            <div class="flex flex-col h-full bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden">
+                <div class="flex items-center justify-between px-4 py-3 bg-slate-900/50 border-b border-slate-700">
+                    <span class="text-sm font-semibold text-emerald-400">Generated SQL</span>
+                    <button onclick="copyToClipboard()" class="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg transition flex items-center">
+                        <i class="fa-regular fa-copy mr-1.5"></i> Copy
+                    </button>
+                </div>
+                <div class="relative flex-grow overflow-auto bg-[#1e1e1e]">
+                    <pre id="output" class="p-4 text-sm code-preview text-blue-200 w-full h-full whitespace-pre font-mono"></pre>
+                    <div id="placeholder-msg" class="absolute inset-0 flex items-center justify-center text-slate-500 pointer-events-none">
+                        <div class="text-center">
+                            <i class="fa-solid fa-code text-4xl mb-3 opacity-30"></i>
+                            <p>SQL output will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 text-white px-4 py-3 rounded-lg shadow-xl border border-slate-700 transform translate-y-20 transition duration-300 flex items-center z-50">
+        <i class="fa-solid fa-check-circle text-emerald-400 mr-2"></i>
+        <span id="toast-msg">Action Successful</span>
+    </div>
+
+    <script>
+        // --- 1. CSV Parser (Handles quoted strings correctly) ---
+        function parseCSVLine(text) {
+            const result = [];
+            let cell = '';
+            let insideQuote = false;
+
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const nextChar = text[i + 1];
+
+                if (char === '"') {
+                    if (insideQuote && nextChar === '"') {
+                        cell += '"'; // Escaped quote
+                        i++;
+                    } else {
+                        insideQuote = !insideQuote;
+                    }
+                } else if (char === ',' && !insideQuote) {
+                    result.push(cell);
+                    cell = '';
+                } else {
+                    cell += char;
+                }
+            }
+            result.push(cell);
+            return result;
+        }
+
+        // --- 2. Type Inference ---
+        function detectTypes(rows, headers) {
+            const types = headers.map(() => ({
+                isInt: true,
+                isFloat: true,
+                isDate: true,
+                maxLength: 0
+            }));
+
+            // Check first 100 rows or all rows
+            const limit = Math.min(rows.length, 500);
+
+            for (let i = 0; i < limit; i++) {
+                const row = rows[i];
+                if (row.length !== headers.length) continue;
+
+                for (let j = 0; j < headers.length; j++) {
+                    const val = row[j].trim();
+                    if (!val) continue; // Skip empty checks
+
+                    // Length check
+                    if (val.length > types[j].maxLength) types[j].maxLength = val.length;
+
+                    // Integer Check
+                    if (types[j].isInt) {
+                        if (!/^-?\d+$/.test(val)) types[j].isInt = false;
+                    }
+
+                    // Float Check
+                    if (types[j].isFloat) {
+                        if (!/^-?\d*(\.\d+)?$/.test(val)) types[j].isFloat = false;
+                    }
+
+                    // Date Check (Simple ISO or common formats)
+                    if (types[j].isDate) {
+                        const date = Date.parse(val);
+                        // A strictly numeric string can be parsed as a date, but we usually don't want that unless it's formatted
+                        const isNumber = /^-?\d+(\.\d+)?$/.test(val);
+                        if (isNaN(date) || isNumber) types[j].isDate = false;
+                    }
+                }
+            }
+            return types;
+        }
+
+        function getSQLType(typeObj, flavor) {
+            if (typeObj.isInt) return 'INT';
+            if (typeObj.isFloat) return flavor === 'postgresql' ? 'NUMERIC' : 'DECIMAL(10, 2)';
+            if (typeObj.isDate) return flavor === 'sqlite' ? 'TEXT' : 'DATETIME'; // SQLite has no native Date
+            
+            // String types
+            if (typeObj.maxLength > 255) return 'TEXT';
+            return 'VARCHAR(255)';
+        }
+
+        // --- 3. Main Generator ---
+        function generateSQL() {
+            const rawInput = document.getElementById('csvInput').value.trim();
+            const tableName = document.getElementById('tableName').value.replace(/[^a-zA-Z0-9_]/g, '_') || 'my_table';
+            const hasHeader = document.getElementById('firstRowHeader').checked;
+            const flavor = document.getElementById('sqlFlavor').value;
+            const outputElem = document.getElementById('output');
+            const placeholder = document.getElementById('placeholder-msg');
+
+            if (!rawInput) {
+                showToast("Please enter CSV data first.", true);
+                return;
+            }
+
+            // Split into lines
+            let lines = rawInput.split(/\r?\n/).filter(line => line.trim() !== '');
+            
+            if (lines.length === 0) return;
+
+            // Parse lines
+            let data = lines.map(line => parseCSVLine(line));
+
+            // Extract Headers
+            let headers = [];
+            if (hasHeader) {
+                headers = data[0].map(h => h.trim().replace(/[^a-zA-Z0-9_]/g, '_') || 'col');
+                data = data.slice(1);
+            } else {
+                // Generate dummy headers
+                const colCount = data[0].length;
+                for (let i = 1; i <= colCount; i++) headers.push(`column_${i}`);
+            }
+
+            // Detect Types
+            const typeInfo = detectTypes(data, headers);
+            
+            // Build CREATE TABLE
+            let sql = `-- Schema for ${tableName}\n`;
+            sql += `CREATE TABLE ${tableName} (\n`;
+            
+            const colDefs = headers.map((header, idx) => {
+                const sqlType = getSQLType(typeInfo[idx], flavor);
+                // Sanitize header name
+                let safeHeader = header;
+                if (/^\d/.test(safeHeader)) safeHeader = 'col_' + safeHeader; // Columns can't start with number
+                return `    ${safeHeader} ${sqlType}`;
+            });
+
+            sql += colDefs.join(',\n');
+            sql += `\n);\n\n`;
+
+            // Build INSERT INTO
+            sql += `-- Data for ${tableName}\n`;
+            
+            // Batch inserts for performance and readability
+            const batchSize = 100;
+            for (let i = 0; i < data.length; i += batchSize) {
+                const batch = data.slice(i, i + batchSize);
+                
+                sql += `INSERT INTO ${tableName} (${headers.map(h => /^\d/.test(h) ? 'col_'+h : h).join(', ')}) VALUES\n`;
+                
+                const rows = batch.map(row => {
+                    const values = row.map((val, idx) => {
+                        val = val.trim();
+                        if (val === '') return 'NULL';
+                        
+                        const type = typeInfo[idx];
+                        
+                        // Handle formatting based on type
+                        if (type.isInt || type.isFloat) {
+                            return val; // Numbers don't need quotes
+                        } else {
+                            // Escape single quotes for SQL
+                            return `'${val.replace(/'/g, "''")}'`;
+                        }
+                    });
+                    
+                    // Handle mismatched row lengths
+                    while(values.length < headers.length) values.push('NULL');
+                    
+                    return `(${values.slice(0, headers.length).join(', ')})`;
+                });
+
+                sql += rows.join(',\n') + ';\n';
+            }
+
+            // Render
+            placeholder.style.display = 'none';
+            outputElem.textContent = sql;
+            
+            // Syntax highlighting roughly (using color span injection would be complex here, keeping it plain text but colored via CSS class)
+        }
+
+        // --- File Handling ---
+        const fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('csvInput').value = e.target.result;
+                generateSQL(); // Auto generate on upload
+                showToast("File loaded successfully!");
+            };
+            reader.readAsText(file);
+        });
+
+        // --- Utilities ---
+        function clearInput() {
+            document.getElementById('csvInput').value = '';
+            document.getElementById('output').textContent = '';
+            document.getElementById('placeholder-msg').style.display = 'flex';
+            document.getElementById('fileInput').value = '';
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('output').textContent;
+            if (!text) return;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("SQL copied to clipboard!");
+            });
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            const icon = toast.querySelector('i');
+            
+            toastMsg.textContent = msg;
+            if (isError) {
+                icon.className = "fa-solid fa-exclamation-circle text-red-400 mr-2";
+            } else {
+                icon.className = "fa-solid fa-check-circle text-emerald-400 mr-2";
+            }
+
+            toast.classList.remove('translate-y-20');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
