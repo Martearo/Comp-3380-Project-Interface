@@ -57,6 +57,157 @@ CREATE TABLE Stadium (
     stadium VARCHAR(255)
 );
 
+CREATE TABLE Official (
+    official_id integer PRIMARY KEY,
+    game_key integer REFERENCES game(game_id)
+);
+
+CREATE TABLE played_in (
+    stadium_id VARCHAR(255) REFERENCES Stadium(stadium_id),
+    game_id VARCHAR(255) REFERENCES game(game_id),
+);
+
+CREATE TABLE post_player_stat (
+    season INTEGER,
+    season_type VARCHAR(255),
+    player_id VARCHAR(255) REFERENCES player(player_id),
+    player_name VARCHAR(255),
+    player_display_name VARCHAR(255),
+    position VARCHAR(255),
+    position_group VARCHAR(255),
+    completions INTEGER,
+    attempts INTEGER,
+    passing_yards INTEGER,
+    passing_tds INTEGER,
+    interceptions INTEGER,
+    sacks INTEGER,
+    sack_yards INTEGER,
+    sack_fumbles INTEGER,
+    sack_fumbles_lost INTEGER,
+    passing_air_yards INTEGER,
+    passing_yards_after_catch INTEGER,
+    passing_first_downs INTEGER,
+    passing_epa DECIMAL(10, 2),
+    passing_2pt_conversions INTEGER,
+    pacr DECIMAL(10, 2),
+    dakota DECIMAL(10, 2),
+    carries INTEGER,
+    rushing_yards INTEGER,
+    rushing_tds INTEGER,
+    rushing_fumbles INTEGER,
+    rushing_fumbles_lost INTEGER,
+    rushing_first_downs INTEGER,
+    rushing_epa DECIMAL(10, 2),
+    rushing_2pt_conversions INTEGER,
+    receptions INTEGER,
+    targets INTEGER,
+    receiving_yards INTEGER,
+    receiving_tds INTEGER,
+    receiving_fumbles INTEGER,
+    receiving_fumbles_lost INTEGER,
+    receiving_air_yards INTEGER,
+    receiving_yards_after_catch INTEGER,
+    receiving_first_downs INTEGER,
+    receiving_epa DECIMAL(10, 2),
+    receiving_2pt_conversions INTEGER,
+    racr DECIMAL(10, 2),
+    target_share DECIMAL(10, 2),
+    air_yards_share DECIMAL(10, 2),
+    wopr DECIMAL(10, 2),
+    special_teams_tds INTEGER,
+    fantasy_points DECIMAL(10, 2),
+    fantasy_points_ppr DECIMAL(10, 2)
+);
+
+CREATE TABLE post_team_stat (
+    season INTEGER,
+    team VARCHAR(255) REFERENCES team(team),
+    completions INTEGER,
+    attempts INTEGER,
+    passing_yards INTEGER,
+    penalties INTEGER,
+    timeouts INTEGER,
+    finish VARCHAR(255)
+);
+
+CREATE TABLE refree (
+    official_id INTEGER REFERENCES Official(official_id),
+    official_name VARCHAR(255),
+    jersey_number INTEGER
+);
+
+CREATE TABLE reg_player_stat (
+    season INTEGER,
+    season_type VARCHAR(255),
+    player_id VARCHAR(255) REFERENCES player(player_id),
+    player_name VARCHAR(255),
+    position VARCHAR(255),
+    position_group VARCHAR(255),
+    completions INTEGER,
+    attempts INTEGER,
+    passing_yards INTEGER,
+    passing_tds INTEGER,
+    interceptions INTEGER,
+    sacks INTEGER,
+    sack_yards INTEGER,
+    sack_fumbles INTEGER,
+    sack_fumbles_lost INTEGER,
+    passing_air_yards INTEGER,
+    passing_yards_after_catch INTEGER,
+    passing_first_downs INTEGER,
+    passing_epa DECIMAL(10, 2),
+    passing_2pt_conversions INTEGER,
+    pacr DECIMAL(10, 2),
+    dakota DECIMAL(10, 2),
+    carries INTEGER,
+    rushing_yards INTEGER,
+    rushing_tds INTEGER,
+    rushing_fumbles INTEGER,
+    rushing_fumbles_lost INTEGER,
+    rushing_first_downs INTEGER,
+    rushing_epa DECIMAL(10, 2),
+    rushing_2pt_conversions INTEGER,
+    receptions INTEGER,
+    targets INTEGER,
+    receiving_yards INTEGER,
+    receiving_tds INTEGER,
+    receiving_fumbles INTEGER,
+    receiving_fumbles_lost INTEGER,
+    receiving_air_yards INTEGER,
+    receiving_yards_after_catch INTEGER,
+    receiving_first_downs INTEGER,
+    receiving_epa DECIMAL(10, 2),
+    receiving_2pt_conversions INTEGER,
+    racr DECIMAL(10, 2),
+    target_share DECIMAL(10, 2),
+    air_yards_share DECIMAL(10, 2),
+    wopr DECIMAL(10, 2),
+    special_teams_tds INTEGER,
+    fantasy_points DECIMAL(10, 2),
+    fantasy_points_ppr DECIMAL(10, 2)
+);
+
+CREATE TABLE reg_team_stat (
+    season INTEGER,
+    team VARCHAR(255) REFERENCES team(team),
+    completions INTEGER,
+    attempts INTEGER,
+    passing_yards INTEGER,
+    penalties INTEGER,
+    timeouts INTEGER,
+    wins INTEGER,
+    losses INTEGER,
+    points_scored INTEGER,
+    points_against INTEGER,
+    division_rank INTEGER
+);
+
+CREATE TABLE roaster (
+    season INTEGER,
+    team VARCHAR(255) REFERENCES team(team),
+    player_id VARCHAR(255) REFERENCES player(player_id)
+);
+
 
 -- Data for team
 INSERT INTO team (team, team_name, col, team_division, team_nick) VALUES
