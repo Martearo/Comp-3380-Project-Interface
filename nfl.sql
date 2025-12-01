@@ -7,21 +7,23 @@ use cs3380;
 -- clean up
 -- Order matters!
 
-drop table if exists post_player_stat;
-drop table if exists post_team_stat;
-drop table if exists reg_player_stat;
-drop table if exists reg_team_stat;
-drop table if exists roaster;
-drop table if exists played_in;
 drop table if exists official;
-drop table if exists refree;
+drop table if exists played_in;
 drop table if exists plays;
-drop table if exists stadium;
+drop table if exists roaster;
+drop table if exists post_player_stat;
+drop table if exists reg_player_stat;
+drop table if exists post_team_stat;
+drop table if exists reg_team_stat;
+
 drop table if exists game;
+drop table if exists refree;
+
 drop table if exists post_season;
 drop table if exists regular_season;
 drop table if exists team;
 drop table if exists player;
+drop table if exists stadium;
 
 
 CREATE TABLE player (
@@ -36,12 +38,60 @@ CREATE TABLE player (
     years_of_experience integer
 );
 
--- Schema for team
 CREATE TABLE team (
-    team VARCHAR(255) primary key,
+    team_abbr VARCHAR(255) primary key,
     team_name VARCHAR(255),
     team_division VARCHAR(255),
     team_nick VARCHAR(255)
+);
+
+CREATE TABLE stadium (
+    stadium_id VARCHAR(255) PRIMARY KEY,
+    stadium VARCHAR(255)
+);
+
+CREATE TABLE refree (
+    official_id INTEGER PRIMARY KEY,
+    official_name VARCHAR(255),
+    jersey_number INTEGER
+);
+
+CREATE TABLE game (
+    game_id integer primary key,
+    season integer,
+    game_type VARCHAR(255),
+    week integer,
+    gameday TEXT,
+    away_team VARCHAR(255) REFERENCES team(team_abbr),
+    away_score integer,
+    home_team VARCHAR(255) REFERENCES team(team_abbr),
+    home_score integer
+);
+
+CREATE TABLE plays (
+    game_id integer REFERENCES game(game_id),
+    season integer,
+    game_type VARCHAR(255),
+    week integer,
+    away_team VARCHAR(255) REFERENCES team(team_abbr),
+    home_team VARCHAR(255) REFERENCES team(team_abbr)
+);
+
+
+CREATE TABLE official (
+    official_id integer REFERENCES refree(official_id),
+    game_id integer REFERENCES game(game_id)
+);
+
+CREATE TABLE played_in (
+    stadium_id VARCHAR(255) REFERENCES stadium(stadium_id),
+    game_id INTEGER REFERENCES game(game_id)
+);
+
+CREATE TABLE roaster (
+    season INTEGER,
+    team VARCHAR(255) REFERENCES team(team_abbr),
+    player_id VARCHAR(255) REFERENCES player(player_id)
 );
 
 CREATE TABLE regular_season (
@@ -52,48 +102,6 @@ CREATE TABLE regular_season (
 CREATE TABLE post_season (
     season INTEGER PRIMARY KEY,
     no_of_game INTEGER
-);
-
--- Schema for game
-CREATE TABLE game (
-    game_id integer primary key,
-    season integer,
-    game_type VARCHAR(255),
-    week integer,
-    gameday TEXT,
-    away_team VARCHAR(255) REFERENCES team(team),
-    away_score integer,
-    home_team VARCHAR(255) REFERENCES team(team),
-    home_score integer
-);
-
-CREATE TABLE plays (
-    game_id integer REFERENCES game(game_id),
-    season integer,
-    game_type VARCHAR(255),
-    week integer,
-    away_team VARCHAR(255) REFERENCES team(team),
-    home_team VARCHAR(255) REFERENCES team(team)
-);
-
-CREATE TABLE stadium (
-    stadium_id VARCHAR(255) PRIMARY KEY,
-    stadium VARCHAR(255)
-);
-CREATE TABLE refree (
-    official_id INTEGER PRIMARY KEY,
-    official_name VARCHAR(255),
-    jersey_number INTEGER
-);
-
-CREATE TABLE official (
-    official_id integer REFERENCES refree(official_id),
-    game_id integer REFERENCES game(game_id)
-);
-
-CREATE TABLE played_in (
-    stadium_id VARCHAR(255) REFERENCES stadium(stadium_id),
-    game_id integer REFERENCES game(game_id),
 );
 
 CREATE TABLE post_player_stat (
@@ -150,7 +158,7 @@ CREATE TABLE post_player_stat (
 
 CREATE TABLE post_team_stat (
     season INTEGER REFERENCES post_season(season),
-    team VARCHAR(255) REFERENCES team(team),
+    team VARCHAR(255) REFERENCES team(team_abbr),
     completions INTEGER,
     attempts INTEGER,
     passing_yards INTEGER,
@@ -212,7 +220,7 @@ CREATE TABLE reg_player_stat (
 
 CREATE TABLE reg_team_stat (
     season INTEGER REFERENCES regular_season(season),
-    team VARCHAR(255) REFERENCES team(team),
+    team VARCHAR(255) REFERENCES team(team_abbr),
     completions INTEGER,
     attempts INTEGER,
     passing_yards INTEGER,
@@ -223,12 +231,6 @@ CREATE TABLE reg_team_stat (
     points_scored INTEGER,
     points_against INTEGER,
     division_rank INTEGER
-);
-
-CREATE TABLE roaster (
-    season INTEGER,
-    team VARCHAR(255) REFERENCES team(team),
-    player_id VARCHAR(255) REFERENCES player(player_id)
 );
 
 -- Data for player
@@ -18658,7 +18660,7 @@ INSERT INTO player (player_id, display_name, common_first_name, first_name, last
 ('00-0016956', 'Kimo von Oelhoffen', 'Kimo', 'Kimo', 'von Oelhoffen', '1971-01-30', 66, 'DT', 14);
 
 -- Data for team
-INSERT INTO team (team, team_name, team_division, team_nick) VALUES
+INSERT INTO team (team_abbr, team_name, team_division, team_nick) VALUES
 ('ARI', 'Arizona Cardinals', 'NFC West', 'Cardinals'),
 ('ATL', 'Atlanta Falcons', 'NFC South', 'Falcons'),
 ('BAL', 'Baltimore Ravens', 'AFC North', 'Ravens'),
