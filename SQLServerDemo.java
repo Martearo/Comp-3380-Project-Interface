@@ -52,24 +52,6 @@ public class SQLServerDemo {
         System.out.println("\n\n\n");
         System.out.println("Welcome to NFL Database (2023-2024)");
         System.out.println("-------------------------------------");
-        // Corrected ASCII Logo
-        // Option 1
-        System.out.println("||\\\\ \t||\t||======\t||\n" +
-                           "|| \\\\ \t||\t||\t\t||\n" +
-                           "||  \\\\ \t||\t||======\t||\n" +
-                           "||   \\\\ ||\t||\t\t||\n" +
-                           "||    \\\\||\t||\t\t||======");
-        // Option 2
-        String block = "\u2588"; 
-        System.out.println("\n");
-        System.out.println(
-            block + "    " + block + "  " + block + block + block + block + block + "  " + block + "\n" +
-            block + block + "   " + block + "  " + block + "      " + block + "\n" +
-            block + " " + block + "  " + block + "  " + block + block + block + block + "   " + block + "\n" +
-            block + "  " + block + " " + block + "  " + block + "      " + block + "\n" +
-            block + "   " + block + block + "  " + block + "      " + block + block + block + block + block
-        );
-        // Option 3
         System.out.println("\n");
         System.out.println(
             "\u2551\\    \u2551  \u2554\u2550\u2550\u2550\u2550\u2550 \u2551\n" +
