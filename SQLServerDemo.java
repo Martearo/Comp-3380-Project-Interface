@@ -4,7 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;         
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -53,12 +53,31 @@ public class SQLServerDemo {
         System.out.println("Welcome to NFL Database (2023-2024)");
         System.out.println("-------------------------------------");
         // Corrected ASCII Logo
-        System.out.println("  _  _ _____ _  ");
-        System.out.println(" | \\ | | ___| |  ");
-        System.out.println(" |  \\| | |__ | |  ");
-        System.out.println(" | . ` | __| | |  ");
-        System.out.println(" | |\\  | |  |_|_ ");
-        System.out.println(" \\_| \\-| |___)  ");
+        // Option 1
+        System.out.println("||\\\\ \t||\t||======\t||\n" +
+                           "|| \\\\ \t||\t||\t\t||\n" +
+                           "||  \\\\ \t||\t||======\t||\n" +
+                           "||   \\\\ ||\t||\t\t||\n" +
+                           "||    \\\\||\t||\t\t||======");
+        // Option 2
+        String block = "\u2588"; 
+        System.out.println("\n");
+        System.out.println(
+            block + "    " + block + "  " + block + block + block + block + block + "  " + block + "\n" +
+            block + block + "   " + block + "  " + block + "      " + block + "\n" +
+            block + " " + block + "  " + block + "  " + block + block + block + block + "   " + block + "\n" +
+            block + "  " + block + " " + block + "  " + block + "      " + block + "\n" +
+            block + "   " + block + block + "  " + block + "      " + block + block + block + block + block
+        );
+        // Option 3
+        System.out.println("\n");
+        System.out.println(
+            "\u2551\\    \u2551  \u2554\u2550\u2550\u2550\u2550\u2550 \u2551\n" +
+            "\u2551 \\   \u2551  \u2551      \u2551\n" +
+            "\u2551  \\  \u2551  \u2560\u2550\u2550\u2550\u2550  \u2551\n" +
+            "\u2551   \\ \u2551  \u2551      \u2551\n" +
+            "\u2551    \\\u2551  \u2551      \u255A\u2550\u2550\u2550\u2550\u2550"
+        );
         System.out.println("\n> Type 'h' for help or 'q' to quit.");
         System.out.println("-------------------------------------\n");
     }
