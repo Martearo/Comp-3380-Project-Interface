@@ -139,8 +139,6 @@ public class SQLServerDemo {
 
 
     public static void main(String[] args) {
-        // ... (Connection setup remains the same) ...
-        // 1. Load configuration (auth.cfg)
         Properties prop = new Properties();
         String authFileName = "auth.cfg";
         try {
@@ -302,7 +300,7 @@ public class SQLServerDemo {
         System.out.println("--- End of Query ---");
     }
 
-    // --- PAGINATION LOGIC (ALL IN JAVA) ---
+    // --- PAGINATION LOGIC  ---
     // Note: This relies on fetching all data into memory first.
     private static void displayPagedPlayers(Connection connection) throws SQLException {
         
@@ -314,7 +312,6 @@ public class SQLServerDemo {
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
-                // Using column name is fine here if the name/case is consistent
                 allPlayers.add(new PlayerData(rs.getString("player_id"), rs.getString("display_name")));
             }
         }
@@ -379,16 +376,13 @@ public class SQLServerDemo {
     
     private static void displayPagedTeams(Connection connection) throws SQLException {
         
-        // 1. Fetch ALL teams from the database
         List<TeamData> allTeams = new ArrayList<>();
-        // Query to match the table definition: team_abbr (1), team_name (2), team_division (3)
         String sql = "SELECT team_abbr, team_name, team_division FROM team ORDER BY team_name";
         System.out.println("-> Fetching all team data for pagination...");
 
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
-                // FIX: Reading by column index (1, 2, 3) instead of name to avoid case-sensitivity issues
                 allTeams.add(new TeamData(
                     rs.getString(1), // team_abbr
                     rs.getString(2), // team_name
@@ -444,7 +438,6 @@ public class SQLServerDemo {
             System.out.println("---|----------+----------------------+----------------------|");
             
             int rowCount = 0;
-            // Use Java's List subList for the current page
             List<TeamData> currentPageData = allTeams.subList(startIndex, endIndex);
             
             for (TeamData team : currentPageData) {
@@ -483,7 +476,6 @@ public class SQLServerDemo {
             else if (action.equals("win")) {
                 int season = promptForInt("Enter Season Year for Super Bowl winner", 2023);
 
-                // Using PreparedStatement
                 sql = "SELECT t.team_name, p.season FROM post_team_stat p JOIN team t ON p.team = t.team_abbr WHERE p.finish = 'champ.win' AND p.season = ?";
                 pStmt = connection.prepareStatement(sql);
                 pStmt.setInt(1, season);
@@ -498,7 +490,6 @@ public class SQLServerDemo {
                 
                 int season = promptForInt("Enter Season Year", 2023);
 
-                // Using PreparedStatement
                 sql = "SELECT p.display_name, (pps.passing_tds + pps.receiving_tds + pps.rushing_tds + pps.special_teams_tds) AS TouchDowns FROM player p JOIN post_player_stat pps ON p.player_id = pps.player_id WHERE p.player_id = ? AND pps.season = ?";
                 
                 pStmt = connection.prepareStatement(sql);
@@ -521,20 +512,43 @@ public class SQLServerDemo {
             } 
             // Command: top <no of team> - Get the top N teams in points scored.
             else if (action.equals("top")) {
-                int limit = 3; 
+                int limit = 3;
                 try {
                     if (!argument.isEmpty()) {
                         limit = Integer.parseInt(argument);
                     }
                 } catch (NumberFormatException e) {
-                    System.err.println("⚠️ Warning: Invalid number of teams specified. Defaulting to 3.");
+                    System.err.println("⚠️ Warning: Invalid number. Defaulting to 3.");
                 }
-                int season = promptForInt("Enter Season Year (Regular Season)", 2023);
 
-                // Building the query string for Statement/LIMIT equivalent (TOP)
-                sql = "SELECT TOP " + limit + " t.team_name, rts.points_scored FROM reg_team_stat rts JOIN team t ON t.team_abbr = rts.team WHERE rts.season = " + season + " ORDER BY rts.points_scored DESC";
-                
-                runSimpleQuery(connection, sql);
+                int seasonType = promptForSeasonType();  // 1 = reg, 2 = post
+
+                String table = "";
+                String typeLabel = "";
+                String statColumn = "";
+
+                if (seasonType == 1) {
+                    table = "reg_team_stat";
+                    typeLabel = "Regular Season";
+                    statColumn = "points_scored";   // ← Column exists only here
+                } else {
+                    table = "post_team_stat";
+                    typeLabel = "Post Season";
+                    statColumn = "passing_yards";   // ← Valid column for postseason
+                }
+
+                int season = promptForInt("Enter Season Year (" + typeLabel + ")", 2023);
+
+                sql =
+                    "SELECT TOP " + limit + " t.team_name, ts." + statColumn + " " +
+                    "FROM " + table + " ts " +
+                    "JOIN team t ON t.team_abbr = ts.team " +
+                    "WHERE ts.season = ? " +
+                    "ORDER BY ts." + statColumn + " DESC";
+
+                pStmt = connection.prepareStatement(sql);
+                pStmt.setInt(1, season);
+                runQuery(pStmt);
             }
             // Command: host <stadium name> - How many games were hosted by a certain stadium?
             else if (action.equals("host")) {
@@ -544,7 +558,6 @@ public class SQLServerDemo {
                 }
                 int season = promptForInt("Enter Season Year", 2023);
                 
-                // Using PreparedStatement
                 sql = "SELECT COUNT(g.game_id) AS gamesHosted FROM game g JOIN played_in pi ON g.game_id = pi.game_id JOIN stadium s ON pi.stadium_id = s.stadium_id WHERE g.game_type = 'post' AND s.stadium = ? AND g.season = ?";
                 pStmt = connection.prepareStatement(sql);
                 pStmt.setString(1, argument);
@@ -559,7 +572,6 @@ public class SQLServerDemo {
                 }
                 int season = promptForInt("Enter Season Year (Regular Season)", 2023);
 
-                // Using PreparedStatement
                 sql = "SELECT p.display_name, CAST((rps.rushing_yards + rps.receiving_yards + rps.passing_yards) AS DECIMAL(10,2)) / NULLIF(rps.carries, 0) AS YPC FROM player p JOIN reg_player_stat rps ON p.player_id = rps.player_id WHERE p.display_name = ? AND rps.season = ?";
                 
                 pStmt = connection.prepareStatement(sql);
@@ -575,7 +587,6 @@ public class SQLServerDemo {
                 }
                 int season = promptForInt("Enter Season Year (Post Season)", 2023);
                 
-                // Using PreparedStatement
                 sql = "SELECT t.team_name, pts.points_scored FROM post_team_stat pts JOIN team t ON pts.team = t.team_abbr WHERE t.team_name = ? AND pts.season = ?";
                     
                 pStmt = connection.prepareStatement(sql);
@@ -587,7 +598,6 @@ public class SQLServerDemo {
             else if (action.equals("tdl")) {
                 int season = promptForInt("Enter Season Year for Touchdown Leaders", 2023);
                 
-                // Using PreparedStatement
                 sql = "WITH MaxTDsPerJersey AS ( "
                     + "    SELECT p.jersey_number, MAX(rps.passing_tds + rps.rushing_tds + rps.receiving_tds) AS max_tds "
                     + "    FROM reg_player_stat rps JOIN player p ON rps.player_id = p.player_id "
@@ -625,7 +635,7 @@ public class SQLServerDemo {
                 }
             }
             // Command: players_low_yds <max yards> <division>
-            else if (action.equals("players_low_yds") || action.equals("plyr_yds")) {
+            else if (action.equals("plyr_yds")) {
                 Pattern p = Pattern.compile("^(\\d+)\\s+(.+)$");
                 Matcher m = p.matcher(argument);
 
@@ -639,7 +649,6 @@ public class SQLServerDemo {
                     String division = m.group(2);
                     int season = promptForInt("Enter Season Year for player stats", 2023);
 
-                    // Using PreparedStatement
                     sql = "SELECT p.display_name, (rps.receiving_yards + rps.passing_yards + rps.rushing_yards) AS total_yds "
                         + "FROM reg_player_stat rps "
                         + "JOIN player p ON rps.player_id = p.player_id "
@@ -663,10 +672,9 @@ public class SQLServerDemo {
                 }
             }
             // Command: top_half_low_div
-            else if (action.equals("top_half_low_div") || action.equals("half_low_div")) {
+            else if (action.equals("top_half_low_div") || action.equals("hld")) {
                 int season = promptForInt("Enter Season Year", 2023);
                 
-                // Using PreparedStatement
                 sql = "SELECT t.team_name FROM reg_team_stat rts JOIN team t ON rts.team = t.team_abbr "
                     + "WHERE rts.season = ? "
                     + "AND rts.points_scored > (SELECT AVG(points_scored) FROM reg_team_stat WHERE season = ?) "
@@ -680,7 +688,6 @@ public class SQLServerDemo {
             else if (action.equals("ref_away_win") || action.equals("ref_win")) {
                 int season = promptForInt("Enter Season Year for Referee Stats", 2023);
 
-                // Using PreparedStatement
                 sql = "SELECT TOP 1 r.official_name, COUNT(o.game_id) AS gamesOfficiatedAwayWin "
                     + "FROM refree r JOIN official o ON r.official_id = o.official_id "
                     + "JOIN game g ON o.game_id = g.game_id "
@@ -695,7 +702,6 @@ public class SQLServerDemo {
             else if (action.equals("def_tds")) {
                 int season = promptForInt("Enter Season Year for Player Stats", 2023);
                 
-                // Using PreparedStatement
                 sql = "SELECT p.display_name, p.position, (rps.passing_tds + rps.receiving_tds + rps.rushing_tds + rps.special_teams_tds) AS defensive_tds "
                     + "FROM player p JOIN reg_player_stat rps ON p.player_id = rps.player_id "
                     + "WHERE p.position IN ('CB', 'S', 'LB', 'DE', 'DT') "
@@ -713,7 +719,6 @@ public class SQLServerDemo {
                 }
                 int season = promptForInt("Enter Season Year for Win Percentage", 2023);
 
-                // Using PreparedStatement
                 sql = "SELECT t.team_abbr, CAST(rts.wins AS DECIMAL(10,2)) / NULLIF((rts.wins + rts.losses), 0) AS win_pct "
                     + "FROM team t JOIN reg_team_stat rts ON t.team_abbr = rts.team "
                     + "WHERE t.team_name = ? AND rts.season = ?";
@@ -731,7 +736,6 @@ public class SQLServerDemo {
                 String teamAbbr = argument.toUpperCase();
                 int season = promptForInt("Enter Season Year for Penalty Stats", 2023);
 
-                // Using PreparedStatement
                 sql = "WITH refOfficiated AS ( "
                     + "    SELECT r.official_id, r.official_name, COUNT(g.game_id) AS gamesOfficiated "
                     + "    FROM refree r JOIN official o ON r.official_id = o.official_id "
@@ -761,8 +765,7 @@ public class SQLServerDemo {
             // Command: low_targets
             else if (action.equals("low_targets") || action.equals("low_trgts")) {
                 int season = promptForInt("Enter Season Year for Player Stats", 2023);
-                
-                // Using PreparedStatement
+
                 sql = "SELECT p.display_name, rps.targets, rps.receptions "
                     + "FROM player p JOIN reg_player_stat rps ON p.player_id = rps.player_id "
                     + "WHERE rps.targets > rps.receptions AND rps.season = ?";
@@ -774,7 +777,6 @@ public class SQLServerDemo {
             else if (action.equals("top5_post_tds") || action.equals("top5_tds")) {
                 int season = promptForInt("Enter Season Year for Postseason TDs", 2023);
                 
-                // Building the query string for Statement/LIMIT equivalent (TOP)
                 sql = "SELECT TOP 5 p.display_name, (pps.passing_tds + pps.receiving_tds + pps.rushing_tds + pps.special_teams_tds) AS Touchdowns "
                     + "FROM player p JOIN post_player_stat pps ON p.player_id = pps.player_id "
                     + "WHERE pps.season = " + season
@@ -783,10 +785,9 @@ public class SQLServerDemo {
                 runSimpleQuery(connection, sql);
             }
             // Command: defensive_trifecta
-            else if (action.equals("defensive_trifecta") || action.equals("def_trifecta")) {
+            else if (action.equals("defensive_trifecta") || action.equals("DFT")) {
                 int season = promptForInt("Enter Season Year for Stats", 2023);
                 
-                // Using PreparedStatement
                 sql = "SELECT p.display_name, p.position FROM player p JOIN reg_player_stat rps ON p.player_id = rps.player_id WHERE rps.sacks >= 1 AND rps.sack_fumbles >= 1 AND rps.interceptions >= 1 AND rps.season = ?";
                 pStmt = connection.prepareStatement(sql);
                 pStmt.setInt(1, season);
@@ -795,8 +796,7 @@ public class SQLServerDemo {
             // Command: shutouts
             else if (action.equals("shutouts")) {
                 int season = promptForInt("Enter Season Year for Shutouts", 2023);
-                
-                // Using PreparedStatement
+
                 sql = "SELECT t.team_abbr, g.week, g.season "
                     + "FROM team t "
                     + "JOIN game g ON (t.team_abbr = g.home_team AND g.home_score = 0) OR (t.team_abbr = g.away_team AND g.away_score = 0) "
@@ -810,7 +810,6 @@ public class SQLServerDemo {
             else if (action.equals("week_scores")) {
                 int season = promptForInt("Enter Season Year for Week Scores", 2023);
                 
-                // Using PreparedStatement
                 sql = "WITH GameScores AS ( "
                     + "    SELECT week, home_score AS score FROM game WHERE game_type = 'reg' AND season = ? "
                     + "    UNION ALL "
@@ -827,7 +826,6 @@ public class SQLServerDemo {
             else if (action.equals("team_top_scorer") || action.equals("top_scorer")) {
                 int season = promptForInt("Enter Season Year for Top Scorers", 2023);
                 
-                // Using PreparedStatement
                 sql = "WITH PlayerPoints AS ( "
                     + "    SELECT "
                     + "        rps.player_id, r.team, p.display_name, "
@@ -882,7 +880,6 @@ public class SQLServerDemo {
 
     // --- HELPER: Get player name for better error reporting ---
     private static String getPlayerName(Connection connection, String playerId) throws SQLException {
-        // Using Statement (no ?)
         String sql = "SELECT display_name FROM player WHERE player_id = '" + playerId + "'";
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -893,8 +890,6 @@ public class SQLServerDemo {
         return null;
     }
 
-
-    // --- IMPLEMENTATION OF DISPLAY HELP (REFACTORED TO TABLE) ---
     private static void displayHelp() {
         System.out.println("\n\n🏈 NFL Database Command Reference (Type 'q' to quit)");
         System.out.println("----------------------------------------------------------------------------------------------------------------------------------");
@@ -919,11 +914,11 @@ public class SQLServerDemo {
         System.out.printf(format, "ref_penalties <team abbr>", "[REF_PEN]", "Get team penalties and their most frequent referee (prompts for year).");
         
         // Print statistical ranking/filtering commands
-        System.out.printf(format, "top <no of team>", "[TOP]", "Get top N teams in regular season points scored (uses SQL TOP/LIMIT).");
+        System.out.printf(format, "top <no of team>", "[TOP]", "Get top N teams in regular season points scored.");
         System.out.printf(format, "tdl", "[TDL]", "Get touchdown leaders at every jersey number (prompts for year).");
-        System.out.printf(format, "top5_post_tds", "[TOP5_TDS]", "Get the top 5 players in total touchdowns scored in the post-season (uses SQL TOP/LIMIT).");
+        System.out.printf(format, "top5_post_tds", "[TOP5_TDS]", "Get the top 5 players in total touchdowns scored in the post-season.");
         System.out.printf(format, "def_tds", "[DEF_TDS]", "Which defensive players had a touchdown in the regular season (prompts for year).");
-        System.out.printf(format, "defensive_trifecta", "[DEF_TRIFECTA]", "Players who recorded a sack, fumble, and interception in the regular season (prompts for year).");
+        System.out.printf(format, "defensive_trifecta", "[DFT]", "Players who recorded a sack, fumble, and interception in the regular season (prompts for year).");
         System.out.printf(format, "low_targets", "[LOW_TRGTS]", "Players with more targets than receptions in the regular season (prompts for year).");
         System.out.printf(format, "team_top_scorer", "[TOP_SCORER]", "Get the #1 scoring player on each team in the regular season (prompts for year).");
 
@@ -934,8 +929,8 @@ public class SQLServerDemo {
         System.out.printf(format, "ref_away_win", "[REF_WIN]", "Referee who officiated the most games where the away team won (prompts for year).");
 
         // Print complex filtering commands
-        System.out.printf(format, "players_low_yds <max yds> <division>", "[PLYR_YDS]", "Players on a top 2 division team with total yards < max yards (prompts for year).");
-        System.out.printf(format, "top_half_low_div", "[HALF_LOW_DIV]", "Teams in the top half of the league in points but in the bottom half of their division (prompts for year).");
+        System.out.printf(format, "plyr_yds <max yds> <division>", "[PLYR_YDS]", "Players on a top 2 division team with total yards < max yards (prompts for year).");
+        System.out.printf(format, "top_half_low_div", "[HLD]", "Teams in the top half of the league in points but in the bottom half of their division (prompts for year).");
 
         // Print help/quit
         System.out.printf(format, "h | help", "[H]", "Display this help screen.");
